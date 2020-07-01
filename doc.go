@@ -1,6 +1,4 @@
 /*
-Package example provided support for local file system.
+Package dropbox provides support for Dropbox (https://www.dropbox.com/).
 */
-package example
-
-//go:generate definitions service.hcl
+package dropbox

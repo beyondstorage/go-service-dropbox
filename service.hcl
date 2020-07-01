@@ -1,9 +1,10 @@
-name = "example"
+name = "dropbox"
 
 namespace "storage" {
   implement = ["dir_lister"]
 
   new {
+    required = ["credential"]
     optional = ["work_dir"]
   }
 
@@ -11,7 +12,7 @@ namespace "storage" {
     optional = ["dir_func", "file_func"]
   }
   op "read" {
-    optional = ["offset", "size"]
+    optional = ["size"]
   }
   op "write" {
     optional = ["size"]
