@@ -85,7 +85,6 @@ func formatError(err error) error {
 	fn := func(errorSummary, s string) bool {
 		return strings.Contains(errorSummary, s)
 	}
-	log.Printf("%#+v", err)
 
 	switch e := err.(type) {
 	case files.GetMetadataAPIError:
