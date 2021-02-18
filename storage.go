@@ -3,17 +3,15 @@ package dropbox
 import (
 	"context"
 	"io"
-	"path/filepath"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 
-	"github.com/aos-dev/go-storage/v2/pkg/iowrap"
-	"github.com/aos-dev/go-storage/v2/types"
-	"github.com/aos-dev/go-storage/v2/types/info"
+	"github.com/aos-dev/go-storage/v3/pkg/iowrap"
+	. "github.com/aos-dev/go-storage/v3/types"
 )
 
-func (s *Storage) delete(ctx context.Context, path string, opt *pairStorageDelete) (err error) {
+func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
 	input := &files.DeleteArg{
@@ -27,94 +25,91 @@ func (s *Storage) delete(ctx context.Context, path string, opt *pairStorageDelet
 
 	return nil
 }
-func (s *Storage) listDir(ctx context.Context, dir string, opt *pairStorageListDir) (err error) {
-	rp := s.getAbsPath(dir)
 
-	result, err := s.client.ListFolder(&files.ListFolderArg{
-		Path: rp,
-	})
-	if err != nil {
-		return err
+func (s *Storage) list(ctx context.Context, path string, opt pairStorageList) (oi *ObjectIterator, err error) {
+	input := &objectPageStatus{
+		limit: 200,
+		path:  s.getAbsPath(path),
 	}
 
-	for {
-		for _, v := range result.Entries {
-			switch meta := v.(type) {
-			case *files.FileMetadata:
-				o := &types.Object{
-					ID:         meta.Id,
-					Type:       types.ObjectTypeFile,
-					Name:       filepath.Join(dir, meta.Name),
-					Size:       int64(meta.Size),
-					UpdatedAt:  meta.ServerModified,
-					ObjectMeta: info.NewObjectMeta(),
-				}
-
-				if meta.ContentHash != "" {
-					o.SetETag(meta.ContentHash)
-				}
-
-				if opt.HasFileFunc {
-					opt.FileFunc(o)
-				}
-			case *files.FolderMetadata:
-				o := &types.Object{
-					ID:         meta.Id,
-					Type:       types.ObjectTypeDir,
-					Name:       filepath.Join(dir, meta.Name),
-					ObjectMeta: info.NewObjectMeta(),
-				}
-
-				if opt.HasDirFunc {
-					opt.DirFunc(o)
-				}
-			default:
-				return ErrUnexpectedEntry
-			}
-		}
-		if !result.HasMore {
-			break
-		}
-
-		result, err = s.client.ListFolderContinue(&files.ListFolderContinueArg{
-			Cursor: result.Cursor,
-		})
-		if err != nil {
-			return err
-		}
+	if opt.ListMode.IsPrefix() {
+		input.recursive = true
 	}
-	return
+
+	return NewObjectIterator(ctx, s.nextObjectPage, input), nil
 }
-func (s *Storage) metadata(ctx context.Context, opt *pairStorageMetadata) (meta info.StorageMeta, err error) {
-	meta = info.NewStorageMeta()
+
+func (s *Storage) metadata(ctx context.Context, opt pairStorageMetadata) (meta *StorageMeta, err error) {
+	meta = NewStorageMeta()
 	meta.WorkDir = s.workDir
 	meta.Name = ""
 
 	return
 }
-func (s *Storage) read(ctx context.Context, path string, opt *pairStorageRead) (rc io.ReadCloser, err error) {
+
+func (s *Storage) nextObjectPage(ctx context.Context, page *ObjectPage) error {
+	input := page.Status.(*objectPageStatus)
+
+	var err error
+	var output *files.ListFolderResult
+
+	if input.cursor == "" {
+		output, err = s.client.ListFolder(&files.ListFolderArg{
+			Path: input.path,
+		})
+	} else {
+		output, err = s.client.ListFolderContinue(&files.ListFolderContinueArg{
+			Cursor: input.cursor,
+		})
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, v := range output.Entries {
+		var o *Object
+		switch meta := v.(type) {
+		case *files.FolderMetadata:
+			o = s.formatFolderObject(meta)
+		case *files.FileMetadata:
+			o = s.formatFileObject(meta)
+		}
+
+		page.Data = append(page.Data, o)
+	}
+
+	if !output.HasMore {
+		return IterateDone
+	}
+
+	input.cursor = output.Cursor
+	return nil
+}
+
+func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairStorageRead) (n int64, err error) {
 	rp := s.getAbsPath(path)
 
 	input := &files.DownloadArg{
 		Path: rp,
 	}
 
-	_, rc, err = s.client.Download(input)
+	_, rc, err := s.client.Download(input)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	if opt.HasSize {
 		rc = iowrap.LimitReadCloser(rc, opt.Size)
 	}
 
-	if opt.HasReadCallbackFunc {
-		rc = iowrap.CallbackReadCloser(rc, opt.ReadCallbackFunc)
+	if opt.HasIoCallback {
+		rc = iowrap.CallbackReadCloser(rc, opt.IoCallback)
 	}
 
-	return
+	return io.Copy(w, rc)
 }
-func (s *Storage) stat(ctx context.Context, path string, opt *pairStorageStat) (o *types.Object, err error) {
+
+func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o *Object, err error) {
 	rp := s.getAbsPath(path)
 
 	input := &files.GetMetadataArg{
@@ -127,46 +122,22 @@ func (s *Storage) stat(ctx context.Context, path string, opt *pairStorageStat) (
 	}
 
 	switch meta := output.(type) {
-	case *files.FileMetadata:
-		o := &types.Object{
-			ID:         meta.Id,
-			Type:       types.ObjectTypeFile,
-			Name:       filepath.Join(path, meta.Name),
-			Size:       int64(meta.Size),
-			UpdatedAt:  meta.ServerModified,
-			ObjectMeta: info.NewObjectMeta(),
-		}
-
-		if meta.ContentHash != "" {
-			o.SetETag(meta.ContentHash)
-		}
-
-		return o, nil
 	case *files.FolderMetadata:
-		o := &types.Object{
-			ID:         meta.Id,
-			Type:       types.ObjectTypeDir,
-			Name:       filepath.Join(path, meta.Name),
-			ObjectMeta: info.NewObjectMeta(),
-		}
-
-		return o, nil
-	default:
-		o := &types.Object{
-			Type: types.ObjectTypeInvalid,
-		}
-
-		return o, nil
+		o = s.formatFolderObject(meta)
+	case *files.FileMetadata:
+		o = s.formatFileObject(meta)
 	}
+
+	return o, nil
 }
-func (s *Storage) write(ctx context.Context, path string, r io.Reader, opt *pairStorageWrite) (err error) {
+
+func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
 	rp := s.getAbsPath(path)
 
-	if opt.HasSize {
-		r = io.LimitReader(r, opt.Size)
-	}
-	if opt.HasReadCallbackFunc {
-		r = iowrap.CallbackReader(r, opt.ReadCallbackFunc)
+	r = io.LimitReader(r, size)
+
+	if opt.HasIoCallback {
+		r = iowrap.CallbackReader(r, opt.IoCallback)
 	}
 
 	input := &files.CommitInfo{
@@ -180,8 +151,8 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, opt *pair
 
 	_, err = s.client.Upload(input, r)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return size, nil
 }

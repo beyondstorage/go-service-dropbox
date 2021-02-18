@@ -8,12 +8,11 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 
-	"github.com/aos-dev/go-storage/v2"
-	"github.com/aos-dev/go-storage/v2/pkg/credential"
-	"github.com/aos-dev/go-storage/v2/pkg/httpclient"
-	"github.com/aos-dev/go-storage/v2/services"
-	"github.com/aos-dev/go-storage/v2/types"
-	ps "github.com/aos-dev/go-storage/v2/types/pairs"
+	ps "github.com/aos-dev/go-storage/v3/pairs"
+	"github.com/aos-dev/go-storage/v3/pkg/credential"
+	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
+	"github.com/aos-dev/go-storage/v3/services"
+	typ "github.com/aos-dev/go-storage/v3/types"
 )
 
 // Storage is the dropbox client.
@@ -21,6 +20,8 @@ type Storage struct {
 	client files.Client
 
 	workDir string
+
+	pairPolicy typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -32,15 +33,15 @@ func (s *Storage) String() string {
 }
 
 // NewStorager will create Storager only.
-func NewStorager(pairs ...*types.Pair) (storage.Storager, error) {
+func NewStorager(pairs ...typ.Pair) (typ.Storager, error) {
 	return newStorager(pairs...)
 }
 
 // New will create a new client.
-func newStorager(pairs ...*types.Pair) (store *Storage, err error) {
+func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: services.OpNewStorager, Type: Type, Err: err, Pairs: pairs}
+			err = &services.InitError{Op: "new_storager", Type: Type, Err: err, Pairs: pairs}
 		}
 	}()
 
@@ -53,10 +54,14 @@ func newStorager(pairs ...*types.Pair) (store *Storage, err error) {
 		Client: httpclient.New(opt.HTTPClientOptions),
 	}
 
-	credProtocol, cred := opt.Credential.Protocol(), opt.Credential.Value()
-	switch credProtocol {
+	cred, err := credential.Parse(opt.Credential)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cred.Protocol() {
 	case credential.ProtocolAPIKey:
-		cfg.Token = cred[0]
+		cfg.Token = cred.APIKey()
 	default:
 		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
 	}
@@ -106,4 +111,30 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 		Storager: s,
 		Path:     path,
 	}
+}
+
+func (s *Storage) newObject(done bool) *typ.Object {
+	return typ.NewObject(s, done)
+}
+
+func (s *Storage) formatFolderObject(v *files.FolderMetadata) (o *typ.Object) {
+	o = s.newObject(true)
+	o.ID = v.Id
+	o.Path = v.Name
+	o.Mode |= typ.ModeDir
+
+	return o
+}
+
+func (s *Storage) formatFileObject(v *files.FileMetadata) (o *typ.Object) {
+	o = s.newObject(true)
+	o.ID = v.Id
+	o.Path = v.Name
+	o.Mode |= typ.ModeRead
+
+	o.SetContentLength(int64(v.Size))
+	o.SetLastModified(v.ServerModified)
+	o.SetEtag(v.ContentHash)
+
+	return o
 }
