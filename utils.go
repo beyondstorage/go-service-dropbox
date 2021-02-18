@@ -10,7 +10,6 @@ import (
 
 	ps "github.com/aos-dev/go-storage/v3/pairs"
 	"github.com/aos-dev/go-storage/v3/pkg/credential"
-	"github.com/aos-dev/go-storage/v3/pkg/httpclient"
 	"github.com/aos-dev/go-storage/v3/services"
 	typ "github.com/aos-dev/go-storage/v3/types"
 )
@@ -51,7 +50,7 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	}
 
 	cfg := dropbox.Config{
-		Client: httpclient.New(opt.HTTPClientOptions),
+		// Client: httpclient.New(opt.HTTPClientOptions),
 	}
 
 	cred, err := credential.Parse(opt.Credential)
@@ -83,10 +82,14 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 // FIXME: I don't know how to handle dropbox's API error correctly, please give me some help.
 func formatError(err error) error {
 	fn := func(errorSummary, s string) bool {
-		return strings.HasPrefix(errorSummary, s)
+		return strings.Contains(errorSummary, s)
 	}
 
 	switch e := err.(type) {
+	case files.GetMetadataAPIError:
+		if fn(e.ErrorSummary, "not_found") {
+			err = fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
+		}
 	case files.DownloadAPIError:
 		if fn(e.ErrorSummary, "not_found") {
 			err = fmt.Errorf("%w: %v", services.ErrObjectNotExist, err)
@@ -97,7 +100,15 @@ func formatError(err error) error {
 	return err
 }
 func (s *Storage) getAbsPath(path string) string {
-	return strings.TrimPrefix(s.workDir+"/"+path, "/")
+	// Return workDir while input path is empty.
+	if path == "" {
+		return s.workDir
+	}
+	// Return directly if input path is already an absolute path.
+	if strings.HasPrefix(path, "/") {
+		return path
+	}
+	return s.workDir + "/" + path
 }
 
 func (s *Storage) formatError(op string, err error, path ...string) error {
