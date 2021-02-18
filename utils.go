@@ -2,7 +2,6 @@ package dropbox
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"

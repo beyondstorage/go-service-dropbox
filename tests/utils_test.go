@@ -23,5 +23,12 @@ func setupTest(t *testing.T) types.Storager {
 	if err != nil {
 		t.Errorf("new storager: %v", err)
 	}
+
+	t.Cleanup(func() {
+		err = store.Delete("")
+		if err != nil {
+			t.Errorf("cleanup: %v", err)
+		}
+	})
 	return store
 }
