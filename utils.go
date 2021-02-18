@@ -100,6 +100,14 @@ func formatError(err error) error {
 	return err
 }
 func (s *Storage) getAbsPath(path string) string {
+	// Return workDir while input path is empty.
+	if path == "" {
+		return s.workDir
+	}
+	// Return directly if input path is already an absolute path.
+	if strings.HasPrefix(path, "/") {
+		return path
+	}
 	return s.workDir + "/" + path
 }
 
