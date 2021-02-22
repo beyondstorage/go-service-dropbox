@@ -20,7 +20,8 @@ type Storage struct {
 
 	workDir string
 
-	pairPolicy typ.PairPolicy
+	defaultPairs DefaultStoragePairs
+	pairPolicy   typ.PairPolicy
 }
 
 // String implements Storager.String
@@ -69,6 +70,14 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 		client: files.New(cfg),
 
 		workDir: "/",
+	}
+
+	if opt.HasDefaultStoragePairs {
+		store.defaultPairs = opt.DefaultStoragePairs
+	}
+
+	if opt.HasPairPolicy {
+		store.pairPolicy = opt.PairPolicy
 	}
 
 	if opt.HasWorkDir {
