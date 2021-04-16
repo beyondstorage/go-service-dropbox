@@ -11,6 +11,14 @@ import (
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
+func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
+	o = s.newObject(false)
+	o.Mode = ModeRead
+	o.ID = s.getAbsPath(path)
+	o.Path = path
+	return o
+}
+
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
