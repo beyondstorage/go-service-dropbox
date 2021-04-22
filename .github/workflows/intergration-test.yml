@@ -22,5 +22,6 @@ jobs:
 
       - name: Test
         env:
+          STORAGE_DROPBOX_INTEGRATION_TEST: ${{ secrets.STORAGE_INTEGRATION_TEST }}
           STORAGE_DROPBOX_CREDENTIAL: ${{ secrets.STORAGE_DROPBOX_CREDENTIAL }}
         run: make integration_test
