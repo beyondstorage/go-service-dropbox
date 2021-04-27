@@ -2,6 +2,7 @@ package dropbox
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
@@ -11,12 +12,74 @@ import (
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
+func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCommitAppend) (err error) {
+	rp := o.GetID()
+
+	offset, ok := o.GetAppendOffset()
+	if !ok {
+		err = fmt.Errorf("append offset is not set")
+		return
+	}
+
+	sessionId := GetObjectMetadata(o).UploadSessionID
+
+	cursor := &files.UploadSessionCursor{
+		SessionId: sessionId,
+		Offset:    uint64(offset),
+	}
+
+	input := &files.CommitInfo{
+		Path: rp,
+		Mode: &files.WriteMode{
+			Tagged: dropbox.Tagged{
+				Tag: files.WriteModeAdd,
+			},
+		},
+	}
+
+	finishArg := &files.UploadSessionFinishArg{
+		Cursor: cursor,
+		Commit: input,
+	}
+
+	_, err = s.client.UploadSessionFinish(finishArg, nil)
+
+	return err
+}
+
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 	o = s.newObject(false)
 	o.Mode = ModeRead
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
+}
+
+func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorageCreateAppend) (o *Object, err error) {
+	startArg := &files.UploadSessionStartArg{
+		Close: false,
+		SessionType: &files.UploadSessionType{
+			Tagged: dropbox.Tagged{
+				Tag: files.UploadSessionTypeSequential,
+			},
+		},
+	}
+
+	res, err := s.client.UploadSessionStart(startArg, nil)
+	if err != nil {
+		return
+	}
+
+	sm := ObjectMetadata{
+		UploadSessionID: res.SessionId,
+	}
+
+	o = s.newObject(true)
+	o.Mode = ModeRead | ModeAppend
+	o.ID = s.getAbsPath(path)
+	o.Path = path
+	o.SetServiceMetadata(sm)
+	return o, nil
 }
 
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
@@ -163,4 +226,34 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 	}
 
 	return size, nil
+}
+
+func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
+	sessionId := GetObjectMetadata(o).UploadSessionID
+
+	offset, ok := o.GetAppendOffset()
+	if !ok {
+		err = fmt.Errorf("append offset is not set")
+		return
+	}
+
+	cursor := &files.UploadSessionCursor{
+		SessionId: sessionId,
+		Offset:    uint64(offset),
+	}
+
+	appendArg := &files.UploadSessionAppendArg{
+		Cursor: cursor,
+		Close:  false,
+	}
+
+	err = s.client.UploadSessionAppendV2(appendArg, r)
+	if err != nil {
+		return
+	}
+
+	offset += size
+	o.SetAppendOffset(offset)
+
+	return offset, nil
 }
