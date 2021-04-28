@@ -13,6 +13,11 @@ import (
 )
 
 func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCommitAppend) (err error) {
+	if !o.Mode.IsAppend() {
+		err = fmt.Errorf("object not appendable")
+		return
+	}
+
 	rp := o.GetID()
 
 	offset, ok := o.GetAppendOffset()
@@ -70,12 +75,17 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 		return
 	}
 
+	if res == nil {
+		err = fmt.Errorf("upload session start response is nil")
+		return
+	}
+
 	sm := ObjectMetadata{
 		UploadSessionID: res.SessionId,
 	}
 
 	o = s.newObject(true)
-	o.Mode = ModeRead | ModeAppend
+	o.Mode = ModeAppend
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	o.SetServiceMetadata(sm)
@@ -229,6 +239,11 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 }
 
 func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
+	if !o.Mode.IsAppend() {
+		err = fmt.Errorf("object not appendable")
+		return
+	}
+
 	sessionId := GetObjectMetadata(o).UploadSessionID
 
 	offset, ok := o.GetAppendOffset()

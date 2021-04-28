@@ -26,3 +26,4 @@ description = "set default pairs for storager actions"
 
 [infos.object.meta.upload-session-id]
 type = "string"
+description = "a unique identifier for the upload session, refer to https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-start"

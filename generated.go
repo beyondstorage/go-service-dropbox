@@ -29,7 +29,7 @@ const (
 
 // ObjectMetadata stores service metadata for object.
 type ObjectMetadata struct {
-	// UploadSessionID
+	// UploadSessionID a unique identifier for the upload session, refer to https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-start
 	UploadSessionID string
 }
 
