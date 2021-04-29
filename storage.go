@@ -47,7 +47,14 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 		Commit: input,
 	}
 
-	_, err = s.client.UploadSessionFinish(finishArg, nil)
+	fileMetadata, err := s.client.UploadSessionFinish(finishArg, nil)
+
+	if err == nil {
+		o.Mode &= ^ModeAppend
+		if fileMetadata != nil && fileMetadata.IsDownloadable {
+			o.Mode |= ModeRead
+		}
+	}
 
 	return err
 }
@@ -63,11 +70,6 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorageCreateAppend) (o *Object, err error) {
 	startArg := &files.UploadSessionStartArg{
 		Close: false,
-		SessionType: &files.UploadSessionType{
-			Tagged: dropbox.Tagged{
-				Tag: files.UploadSessionTypeSequential,
-			},
-		},
 	}
 
 	res, err := s.client.UploadSessionStart(startArg, nil)
@@ -270,5 +272,5 @@ func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size 
 	offset += size
 	o.SetAppendOffset(offset)
 
-	return offset, nil
+	return size, nil
 }

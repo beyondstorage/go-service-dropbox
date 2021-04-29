@@ -13,3 +13,10 @@ func TestStorage(t *testing.T) {
 	}
 	tests.TestStorager(t, setupTest(t))
 }
+
+func TestAppend(t *testing.T) {
+	if os.Getenv("STORAGE_DROPBOX_INTEGRATION_TEST") != "on" {
+		t.Skipf("STORAGE_DROPBOX_INTEGRATION_TEST is not 'on', skipped")
+	}
+	tests.TestAppender(t, setupTest(t))
+}
