@@ -90,6 +90,7 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 	o.Mode = ModeAppend
 	o.ID = s.getAbsPath(path)
 	o.Path = path
+	o.SetAppendOffset(0)
 	o.SetServiceMetadata(sm)
 	return o, nil
 }
