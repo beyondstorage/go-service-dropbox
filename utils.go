@@ -24,6 +24,7 @@ type Storage struct {
 	pairPolicy   typ.PairPolicy
 
 	typ.UnimplementedStorager
+	typ.UnimplementedAppender
 }
 
 // String implements Storager.String
@@ -110,6 +111,16 @@ func formatError(err error) error {
 	}
 	return err
 }
+
+func checkError(err error, codes ...string) bool {
+	var s strings.Builder
+	for _, code := range codes {
+		s.WriteString(code)
+		s.WriteString("/")
+	}
+	return strings.Contains(err.Error(), s.String())
+}
+
 func (s *Storage) getAbsPath(path string) string {
 	// Return workDir while input path is empty.
 	if path == "" {

@@ -2,6 +2,7 @@ package dropbox
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
@@ -11,12 +12,83 @@ import (
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
+func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCommitAppend) (err error) {
+	if !o.Mode.IsAppend() {
+		err = fmt.Errorf("object not appendable")
+		return
+	}
+
+	rp := o.GetID()
+
+	offset, ok := o.GetAppendOffset()
+	if !ok {
+		err = fmt.Errorf("append offset is not set")
+		return
+	}
+
+	sessionId := GetObjectMetadata(o).UploadSessionID
+
+	cursor := &files.UploadSessionCursor{
+		SessionId: sessionId,
+		Offset:    uint64(offset),
+	}
+
+	input := &files.CommitInfo{
+		Path: rp,
+		Mode: &files.WriteMode{
+			Tagged: dropbox.Tagged{
+				Tag: files.WriteModeAdd,
+			},
+		},
+	}
+
+	finishArg := &files.UploadSessionFinishArg{
+		Cursor: cursor,
+		Commit: input,
+	}
+
+	fileMetadata, err := s.client.UploadSessionFinish(finishArg, nil)
+	if err != nil {
+		return
+	}
+
+	o.Mode &= ^ModeAppend
+	if fileMetadata != nil && fileMetadata.IsDownloadable {
+		o.Mode |= ModeRead
+	}
+
+	return nil
+}
+
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 	o = s.newObject(false)
 	o.Mode = ModeRead
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
+}
+
+func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorageCreateAppend) (o *Object, err error) {
+	startArg := &files.UploadSessionStartArg{
+		Close: false,
+	}
+
+	res, err := s.client.UploadSessionStart(startArg, nil)
+	if err != nil {
+		return
+	}
+
+	sm := ObjectMetadata{
+		UploadSessionID: res.SessionId,
+	}
+
+	o = s.newObject(true)
+	o.Mode = ModeAppend
+	o.ID = s.getAbsPath(path)
+	o.Path = path
+	o.SetAppendOffset(0)
+	o.SetServiceMetadata(sm)
+	return o, nil
 }
 
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
@@ -27,6 +99,10 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	}
 
 	_, err = s.client.DeleteV2(input)
+	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
+		// omit `path_lookup/not_found` error, ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
@@ -161,6 +237,37 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 	if err != nil {
 		return 0, err
 	}
+
+	return size, nil
+}
+
+func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
+	if !o.Mode.IsAppend() {
+		err = fmt.Errorf("object not appendable")
+		return
+	}
+
+	sessionId := GetObjectMetadata(o).UploadSessionID
+
+	offset := o.MustGetAppendOffset()
+
+	cursor := &files.UploadSessionCursor{
+		SessionId: sessionId,
+		Offset:    uint64(offset),
+	}
+
+	appendArg := &files.UploadSessionAppendArg{
+		Cursor: cursor,
+		Close:  false,
+	}
+
+	err = s.client.UploadSessionAppendV2(appendArg, r)
+	if err != nil {
+		return
+	}
+
+	offset += size
+	o.SetAppendOffset(offset)
 
 	return size, nil
 }
