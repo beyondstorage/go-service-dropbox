@@ -99,10 +99,12 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 	}
 
 	_, err = s.client.DeleteV2(input)
+	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
+		// omit `path_lookup/not_found` error, ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+		err = nil
+	}
 	if err != nil {
-		if !checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
-			return err
-		}
+		return err
 	}
 
 	return nil
