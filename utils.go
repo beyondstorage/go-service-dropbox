@@ -113,12 +113,12 @@ func formatError(err error) error {
 }
 
 func checkError(err error, codes ...string) bool {
-	var errMsg strings.Builder
+	var s strings.Builder
 	for _, code := range codes {
-		errMsg.WriteString(code)
-		errMsg.WriteString("/")
+		s.WriteString(code)
+		s.WriteString("/")
 	}
-	return strings.Contains(err.Error(), errMsg.String())
+	return strings.Contains(err.Error(), s.String())
 }
 
 func (s *Storage) getAbsPath(path string) string {

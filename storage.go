@@ -48,15 +48,16 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 	}
 
 	fileMetadata, err := s.client.UploadSessionFinish(finishArg, nil)
-
-	if err == nil {
-		o.Mode &= ^ModeAppend
-		if fileMetadata != nil && fileMetadata.IsDownloadable {
-			o.Mode |= ModeRead
-		}
+	if err != nil {
+		return
 	}
 
-	return err
+	o.Mode &= ^ModeAppend
+	if fileMetadata != nil && fileMetadata.IsDownloadable {
+		o.Mode |= ModeRead
+	}
+
+	return nil
 }
 
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
@@ -74,11 +75,6 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 
 	res, err := s.client.UploadSessionStart(startArg, nil)
 	if err != nil {
-		return
-	}
-
-	if res == nil {
-		err = fmt.Errorf("upload session start response is nil")
 		return
 	}
 
@@ -251,11 +247,7 @@ func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size 
 
 	sessionId := GetObjectMetadata(o).UploadSessionID
 
-	offset, ok := o.GetAppendOffset()
-	if !ok {
-		err = fmt.Errorf("append offset is not set")
-		return
-	}
+	offset := o.MustGetAppendOffset()
 
 	cursor := &files.UploadSessionCursor{
 		SessionId: sessionId,
