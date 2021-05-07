@@ -104,8 +104,7 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 
 	_, err = s.client.DeleteV2(input)
 	if err != nil {
-		code := files.DeleteErrorPathLookup + "/" + files.LookupErrorNotFound
-		if ok := checkError(err, code); !ok {
+		if !checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
 			return err
 		}
 	}
