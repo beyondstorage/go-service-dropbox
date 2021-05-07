@@ -111,6 +111,11 @@ func formatError(err error) error {
 	}
 	return err
 }
+
+func checkError(err error, code string) bool {
+	return strings.Contains(err.Error(), code)
+}
+
 func (s *Storage) getAbsPath(path string) string {
 	// Return workDir while input path is empty.
 	if path == "" {
