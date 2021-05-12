@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
-	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
+	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
 	"github.com/aos-dev/go-storage/v3/pkg/iowrap"
 	"github.com/aos-dev/go-storage/v3/services"
@@ -67,6 +67,11 @@ func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
 func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorageCreateAppend) (o *Object, err error) {
 	startArg := &files.UploadSessionStartArg{
 		Close: false,
+		SessionType: &files.UploadSessionType{
+			Tagged: dropbox.Tagged{
+				Tag: files.UploadSessionTypeSequential,
+			},
+		},
 	}
 
 	res, err := s.client.UploadSessionStart(startArg, nil)
@@ -96,7 +101,8 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 
 	_, err = s.client.DeleteV2(input)
 	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
-		// omit `path_lookup/not_found` error, ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
+		// Omit `path_lookup/not_found` error here.
+		// ref: https://github.com/aos-dev/specs/blob/master/rfcs/46-idempotent-delete.md
 		err = nil
 	}
 	if err != nil {
