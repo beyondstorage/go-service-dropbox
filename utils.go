@@ -44,7 +44,7 @@ func NewStorager(pairs ...typ.Pair) (typ.Storager, error) {
 func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	defer func() {
 		if err != nil {
-			err = &services.InitError{Op: "new_storager", Type: Type, Err: err, Pairs: pairs}
+			err = services.InitError{Op: "new_storager", Type: Type, Err: formatError(err), Pairs: pairs}
 		}
 	}()
 
@@ -66,7 +66,7 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 	case credential.ProtocolAPIKey:
 		cfg.Token = cred.APIKey()
 	default:
-		return nil, services.NewPairUnsupportedError(ps.WithCredential(opt.Credential))
+		return nil, services.PairUnsupportedError{Pair: ps.WithCredential(opt.Credential)}
 	}
 
 	store = &Storage{
@@ -93,6 +93,10 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 //
 // FIXME: I don't know how to handle dropbox's API error correctly, please give me some help.
 func formatError(err error) error {
+	if _, ok := err.(services.AosError); ok {
+		return err
+	}
+
 	fn := func(errorSummary, s string) bool {
 		return strings.Contains(errorSummary, s)
 	}
@@ -108,6 +112,8 @@ func formatError(err error) error {
 		}
 	case auth.AccessAPIError:
 		err = fmt.Errorf("%w: %v", services.ErrPermissionDenied, err)
+	default:
+		err = fmt.Errorf("%w, %v", services.ErrUnexpected, err)
 	}
 	return err
 }
@@ -138,7 +144,7 @@ func (s *Storage) formatError(op string, err error, path ...string) error {
 		return nil
 	}
 
-	return &services.StorageError{
+	return services.StorageError{
 		Op:       op,
 		Err:      formatError(err),
 		Storager: s,

@@ -37,10 +37,12 @@ github.com/Xuanwo/templateutils v0.1.0 h1:WpkWOqQtIQ2vAIpJLa727DdN8WtxhUkkbDGa6U
 github.com/Xuanwo/templateutils v0.1.0/go.mod h1:OdE0DJ+CJxDBq6psX5DPV+gOZi8bhuHuVUpPCG++Wb8=
 github.com/aos-dev/go-integration-test/v3 v3.0.1-0.20210506085629-1ace601e00c6 h1:/GrJCqznHBjWWj3x2K5KU6hKG6BfR211bRJAFGdH7bc=
 github.com/aos-dev/go-integration-test/v3 v3.0.1-0.20210506085629-1ace601e00c6/go.mod h1:D05/hz2AbZFBucYlzvpYBb62v17SgKUNhi3lxuUQLj4=
-github.com/aos-dev/go-storage/v3 v3.6.1-0.20210427074731-1b3b4e86c950 h1:3ZsfgDAUF171rIrFdYjhr8P3WyxzR4IwxWGbGxkCRkA=
 github.com/aos-dev/go-storage/v3 v3.6.1-0.20210427074731-1b3b4e86c950/go.mod h1:wzxhpUa73aCdTDRG0sHjNnnmXa9rC/ahJnk7hKOV6Pw=
-github.com/aos-dev/specs/go v0.0.0-20210427074008-93183332d504 h1:vHxnQOXlz/X8/Co1ep57yc34Xso+f2+xt4Q2dMJVHA4=
+github.com/aos-dev/go-storage/v3 v3.6.1-0.20210510125045-f79d0505cb2b h1:3XpTC+Q+bm2zVoEI67AUf52o28Loq8YcZ0L45F/2H4I=
+github.com/aos-dev/go-storage/v3 v3.6.1-0.20210510125045-f79d0505cb2b/go.mod h1:ho7Z5P8fj+Q+9pCBng5s+d0XjH06I4hslaht9aiUjaA=
 github.com/aos-dev/specs/go v0.0.0-20210427074008-93183332d504/go.mod h1:gNah3KaPJEfysh7uCCX+sYjQC3g2yx2VgBkFlT945Ws=
+github.com/aos-dev/specs/go v0.0.0-20210510065836-ba70d7b05cda h1:D9DV8kz38iPT6mCHSCTlxYN4Zg9DUfHmWKJKVBvZmfY=
+github.com/aos-dev/specs/go v0.0.0-20210510065836-ba70d7b05cda/go.mod h1:gNah3KaPJEfysh7uCCX+sYjQC3g2yx2VgBkFlT945Ws=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

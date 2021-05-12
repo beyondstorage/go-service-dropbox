@@ -1,8 +1,8 @@
 package dropbox
 
-import "errors"
+import "github.com/aos-dev/go-storage/v3/services"
 
 var (
-	// ErrUnexpectedEntry is the error returned when Dropbox service has returned an unexpected kind of entry.
-	ErrUnexpectedEntry = errors.New("unexpected entry")
+	// ErrEntryUnexpected is the error returned when Dropbox service has returned an unexpected kind of entry.
+	ErrEntryUnexpected = services.NewErrorCode("unexpected entry")
 )
