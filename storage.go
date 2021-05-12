@@ -2,29 +2,25 @@ package dropbox
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
 
 	"github.com/aos-dev/go-storage/v3/pkg/iowrap"
+	"github.com/aos-dev/go-storage/v3/services"
 	. "github.com/aos-dev/go-storage/v3/types"
 )
 
 func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCommitAppend) (err error) {
 	if !o.Mode.IsAppend() {
-		err = fmt.Errorf("object not appendable")
+		err = services.ObjectModeInvalidError{Expected: ModeAppend, Actual: o.Mode}
 		return
 	}
 
 	rp := o.GetID()
 
-	offset, ok := o.GetAppendOffset()
-	if !ok {
-		err = fmt.Errorf("append offset is not set")
-		return
-	}
+	offset, _ := o.GetAppendOffset()
 
 	sessionId := GetObjectMetadata(o).UploadSessionID
 
@@ -243,7 +239,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 
 func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
 	if !o.Mode.IsAppend() {
-		err = fmt.Errorf("object not appendable")
+		err = services.ObjectModeInvalidError{Expected: ModeAppend, Actual: o.Mode}
 		return
 	}
 
