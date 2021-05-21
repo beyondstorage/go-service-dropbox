@@ -8,10 +8,10 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/auth"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
-	ps "github.com/aos-dev/go-storage/v3/pairs"
-	"github.com/aos-dev/go-storage/v3/pkg/credential"
-	"github.com/aos-dev/go-storage/v3/services"
-	typ "github.com/aos-dev/go-storage/v3/types"
+	ps "github.com/beyondstorage/go-storage/v4/pairs"
+	"github.com/beyondstorage/go-storage/v4/pkg/credential"
+	"github.com/beyondstorage/go-storage/v4/services"
+	typ "github.com/beyondstorage/go-storage/v4/types"
 )
 
 // Storage is the dropbox client.
@@ -93,7 +93,7 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 //
 // FIXME: I don't know how to handle dropbox's API error correctly, please give me some help.
 func formatError(err error) error {
-	if _, ok := err.(services.AosError); ok {
+	if _, ok := err.(services.InternalError); ok {
 		return err
 	}
 
