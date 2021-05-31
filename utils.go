@@ -21,7 +21,7 @@ type Storage struct {
 	workDir string
 
 	defaultPairs DefaultStoragePairs
-	pairPolicy   typ.PairPolicy
+	features     StorageFeatures
 
 	typ.UnimplementedStorager
 	typ.UnimplementedAppender
@@ -79,8 +79,8 @@ func newStorager(pairs ...typ.Pair) (store *Storage, err error) {
 		store.defaultPairs = opt.DefaultStoragePairs
 	}
 
-	if opt.HasPairPolicy {
-		store.pairPolicy = opt.PairPolicy
+	if opt.HasStorageFeatures {
+		store.features = opt.StorageFeatures
 	}
 
 	if opt.HasWorkDir {
