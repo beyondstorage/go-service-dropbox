@@ -94,10 +94,7 @@ type StorageFeatures struct {
 
 	VirtualOperationAll bool
 
-	VirtualPairAll              bool
-	VirtualPairWriteAll         bool
-	VirtualPairWriteContentMd5  bool
-	VirtualPairWriteContentType bool
+	VirtualPairAll bool
 }
 
 // pairStorageNew is the parsed struct
@@ -517,12 +514,12 @@ func (s *Storage) parsePairStorageStat(opts []Pair) (pairStorageStat, error) {
 // pairStorageWrite is the parsed struct
 type pairStorageWrite struct {
 	pairs          []Pair
-	HasIoCallback  bool
-	IoCallback     func([]byte)
 	HasContentMd5  bool
 	ContentMd5     string
 	HasContentType bool
 	ContentType    string
+	HasIoCallback  bool
+	IoCallback     func([]byte)
 }
 
 // parsePairStorageWrite will parse Pair slice into *pairStorageWrite
@@ -536,6 +533,20 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 		isUnsupportedPair := false
 
 		switch v.Key {
+		case "content_md5":
+			if result.HasContentMd5 {
+				continue
+			}
+			result.HasContentMd5 = true
+			result.ContentMd5 = v.Value.(string)
+			continue
+		case "content_type":
+			if result.HasContentType {
+				continue
+			}
+			result.HasContentType = true
+			result.ContentType = v.Value.(string)
+			continue
 		case "io_callback":
 			if result.HasIoCallback {
 				continue
@@ -543,28 +554,6 @@ func (s *Storage) parsePairStorageWrite(opts []Pair) (pairStorageWrite, error) {
 			result.HasIoCallback = true
 			result.IoCallback = v.Value.(func([]byte))
 			continue
-		case "content_md5":
-			if result.HasContentMd5 {
-				continue
-			}
-			// If user enables the virtual pair feature, we can pass the virtual pair into it.
-			if s.features.VirtualPairAll || s.features.VirtualPairWriteAll || s.features.VirtualPairWriteContentMd5 {
-				result.HasContentMd5 = true
-				result.ContentMd5 = v.Value.(string)
-				continue
-			}
-			isUnsupportedPair = true
-		case "content_type":
-			if result.HasContentType {
-				continue
-			}
-			// If user enables the virtual pair feature, we can pass the virtual pair into it.
-			if s.features.VirtualPairAll || s.features.VirtualPairWriteAll || s.features.VirtualPairWriteContentType {
-				result.HasContentType = true
-				result.ContentType = v.Value.(string)
-				continue
-			}
-			isUnsupportedPair = true
 		default:
 			isUnsupportedPair = true
 		}
