@@ -108,8 +108,14 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 
 	o = s.newObject(true)
 	o.Mode = ModeDir
-	o.ID = res.Metadata.Id
-	o.Path = res.Metadata.Name
+	if res != nil {
+		o.ID = res.Metadata.Id
+		o.Path = res.Metadata.Name
+	} else {
+		o.ID = rp
+		o.Path = path
+	}
+
 	return o, nil
 }
 
