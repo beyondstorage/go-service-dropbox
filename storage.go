@@ -51,8 +51,14 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 }
 
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
-	o = s.newObject(false)
-	o.Mode = ModeRead
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		o = s.newObject(true)
+		o.Mode = ModeDir
+	} else {
+		o = s.newObject(false)
+		o.Mode = ModeRead
+	}
+
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
@@ -86,6 +92,27 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 	return o, nil
 }
 
+func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	rp := s.getAbsPath(path)
+
+	res, err := s.client.CreateFolderV2(&files.CreateFolderArg{
+		Path: rp,
+	})
+	if err != nil && checkError(err, files.CreateFolderErrorPath, files.WriteErrorConflict, files.WriteConflictErrorFolder) {
+		// Omit `path/conflict/folder` (`dir exists` related) error here.
+		err = nil
+	}
+	if err != nil {
+		return
+	}
+
+	o = s.newObject(true)
+	o.Mode = ModeDir
+	o.ID = res.Metadata.Id
+	o.Path = res.Metadata.Name
+	return o, nil
+}
+
 func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete) (err error) {
 	rp := s.getAbsPath(path)
 
@@ -93,6 +120,7 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 		Path: rp,
 	}
 
+	// If the path is a folder, all its contents will be deleted too.
 	_, err = s.client.DeleteV2(input)
 	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
 		// Omit `path_lookup/not_found` error here.

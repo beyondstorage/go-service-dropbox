@@ -25,6 +25,7 @@ type Storage struct {
 
 	typ.UnimplementedStorager
 	typ.UnimplementedAppender
+	typ.UnimplementedDirer
 }
 
 // String implements Storager.String
