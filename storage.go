@@ -2,12 +2,14 @@ package dropbox
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
 	"github.com/beyondstorage/go-storage/v4/pkg/iowrap"
+	"github.com/beyondstorage/go-storage/v4/services"
 	. "github.com/beyondstorage/go-storage/v4/types"
 )
 
@@ -106,12 +108,16 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		return
 	}
 
-	o = s.newObject(true)
-	o.Mode = ModeDir
 	if res != nil {
+		// A successful response indicates that the folder is created and the returned `res` is the corresponding `FolderMetadata`.
+		o = s.newObject(true)
+		o.Mode = ModeDir
 		o.ID = res.Metadata.Id
 		o.Path = res.Metadata.Name
 	} else {
+		// `res` is nil when the given path is an existing folder.
+		o = s.newObject(false)
+		o.Mode = ModeDir
 		o.ID = rp
 		o.Path = path
 	}
@@ -126,7 +132,24 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 		Path: rp,
 	}
 
-	// If the path is a folder, all its contents will be deleted too.
+	// If path is a folder, all its contents will be deleted by `DeleteV2`. So we should check whether path is an empty folder.
+	res, err := s.client.ListFolder(&files.ListFolderArg{
+		Path:      path,
+		Recursive: false,
+	})
+	if err != nil && checkError(err, files.ListFolderErrorPath, files.LookupErrorNotFound) {
+		// Omit `path/not_found` error here.
+		err = nil
+	}
+	if err != nil {
+		return
+	}
+
+	if res != nil && len(res.Entries) != 0 {
+		err = fmt.Errorf("delete unempty folder not allowed: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+
 	_, err = s.client.DeleteV2(input)
 	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
 		// Omit `path_lookup/not_found` error here.
