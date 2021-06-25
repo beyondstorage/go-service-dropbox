@@ -18,7 +18,7 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 
 	offset, _ := o.GetAppendOffset()
 
-	sessionId := GetObjectMetadata(o).UploadSessionID
+	sessionId := GetObjectSystemMetadata(o).UploadSessionID
 
 	cursor := &files.UploadSessionCursor{
 		SessionId: sessionId,
@@ -81,7 +81,7 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 		return
 	}
 
-	sm := ObjectMetadata{
+	sm := ObjectSystemMetadata{
 		UploadSessionID: res.SessionId,
 	}
 
@@ -90,7 +90,7 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	o.SetAppendOffset(0)
-	o.SetServiceMetadata(sm)
+	o.SetSystemMetadata(sm)
 	return o, nil
 }
 
@@ -295,7 +295,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 }
 
 func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
-	sessionId := GetObjectMetadata(o).UploadSessionID
+	sessionId := GetObjectSystemMetadata(o).UploadSessionID
 
 	offset := o.MustGetAppendOffset()
 
