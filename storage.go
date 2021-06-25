@@ -132,24 +132,8 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 		Path: rp,
 	}
 
-	// If path is a folder, all its contents will be deleted by `DeleteV2`. So we should check whether path is an empty folder.
-	res, err := s.client.ListFolder(&files.ListFolderArg{
-		Path:      path,
-		Recursive: false,
-	})
-	if err != nil && checkError(err, files.ListFolderErrorPath, files.LookupErrorNotFound) {
-		// Omit `path/not_found` error here.
-		err = nil
-	}
-	if err != nil {
-		return
-	}
-
-	if res != nil && len(res.Entries) != 0 {
-		err = fmt.Errorf("delete unempty folder not allowed: %w", services.ErrRestrictionDissatisfied)
-		return
-	}
-
+	// If the path is a folder, all its contents will be deleted too.
+	// ref: https://www.dropbox.com/developers/documentation/http/documentation#files-delete
 	_, err = s.client.DeleteV2(input)
 	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
 		// Omit `path_lookup/not_found` error here.
