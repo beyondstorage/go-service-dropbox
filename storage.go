@@ -180,7 +180,10 @@ func (s *Storage) metadata(opt pairStorageMetadata) (meta *StorageMeta) {
 	meta = NewStorageMeta()
 	meta.WorkDir = s.workDir
 	meta.Name = ""
-
+	// set write restriction
+	meta.SetWriteSizeMaximum(writeSizeMaximum)
+	// set append restrictions
+	meta.SetAppendTotalSizeMaximum(appendTotalSizeMaximum)
 	return
 }
 
@@ -269,6 +272,11 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 }
 
 func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
+	if size > writeSizeMaximum {
+		err = fmt.Errorf("size limit exceeded: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+
 	rp := s.getAbsPath(path)
 
 	r = io.LimitReader(r, size)
