@@ -2,12 +2,14 @@ package dropbox
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 
 	"github.com/beyondstorage/go-storage/v4/pkg/iowrap"
+	"github.com/beyondstorage/go-storage/v4/services"
 	. "github.com/beyondstorage/go-storage/v4/types"
 )
 
@@ -16,7 +18,7 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 
 	offset, _ := o.GetAppendOffset()
 
-	sessionId := GetObjectMetadata(o).UploadSessionID
+	sessionId := GetObjectSystemMetadata(o).UploadSessionID
 
 	cursor := &files.UploadSessionCursor{
 		SessionId: sessionId,
@@ -51,8 +53,14 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 }
 
 func (s *Storage) create(path string, opt pairStorageCreate) (o *Object) {
-	o = s.newObject(false)
-	o.Mode = ModeRead
+	if opt.HasObjectMode && opt.ObjectMode.IsDir() {
+		o = s.newObject(true)
+		o.Mode = ModeDir
+	} else {
+		o = s.newObject(false)
+		o.Mode = ModeRead
+	}
+
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	return o
@@ -73,7 +81,7 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 		return
 	}
 
-	sm := ObjectMetadata{
+	sm := ObjectSystemMetadata{
 		UploadSessionID: res.SessionId,
 	}
 
@@ -82,7 +90,38 @@ func (s *Storage) createAppend(ctx context.Context, path string, opt pairStorage
 	o.ID = s.getAbsPath(path)
 	o.Path = path
 	o.SetAppendOffset(0)
-	o.SetServiceMetadata(sm)
+	o.SetSystemMetadata(sm)
+	return o, nil
+}
+
+func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCreateDir) (o *Object, err error) {
+	rp := s.getAbsPath(path)
+
+	res, err := s.client.CreateFolderV2(&files.CreateFolderArg{
+		Path: rp,
+	})
+	if err != nil && checkError(err, files.CreateFolderErrorPath, files.WriteErrorConflict, files.WriteConflictErrorFolder) {
+		// Omit `path/conflict/folder` (`dir exists` related) error here.
+		err = nil
+	}
+	if err != nil {
+		return
+	}
+
+	if res != nil {
+		// A successful response indicates that the folder is created and the returned `res` is the corresponding `FolderMetadata`.
+		o = s.newObject(true)
+		o.Mode = ModeDir
+		o.ID = res.Metadata.Id
+		o.Path = res.Metadata.Name
+	} else {
+		// `res` is nil when the given path is an existing folder.
+		o = s.newObject(false)
+		o.Mode = ModeDir
+		o.ID = rp
+		o.Path = path
+	}
+
 	return o, nil
 }
 
@@ -93,6 +132,8 @@ func (s *Storage) delete(ctx context.Context, path string, opt pairStorageDelete
 		Path: rp,
 	}
 
+	// If the path is a folder, all its contents will be deleted too.
+	// ref: https://www.dropbox.com/developers/documentation/http/documentation#files-delete
 	_, err = s.client.DeleteV2(input)
 	if err != nil && checkError(err, files.DeleteErrorPathLookup, files.LookupErrorNotFound) {
 		// Omit `path_lookup/not_found` error here.
@@ -123,7 +164,10 @@ func (s *Storage) metadata(opt pairStorageMetadata) (meta *StorageMeta) {
 	meta = NewStorageMeta()
 	meta.WorkDir = s.workDir
 	meta.Name = ""
-
+	// set write restriction
+	meta.SetWriteSizeMaximum(writeSizeMaximum)
+	// set append restrictions
+	meta.SetAppendTotalSizeMaximum(appendTotalSizeMaximum)
 	return
 }
 
@@ -212,6 +256,11 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 }
 
 func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int64, opt pairStorageWrite) (n int64, err error) {
+	if size > writeSizeMaximum {
+		err = fmt.Errorf("size limit exceeded: %w", services.ErrRestrictionDissatisfied)
+		return
+	}
+
 	rp := s.getAbsPath(path)
 
 	r = io.LimitReader(r, size)
@@ -238,7 +287,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 }
 
 func (s *Storage) writeAppend(ctx context.Context, o *Object, r io.Reader, size int64, opt pairStorageWriteAppend) (n int64, err error) {
-	sessionId := GetObjectMetadata(o).UploadSessionID
+	sessionId := GetObjectSystemMetadata(o).UploadSessionID
 
 	offset := o.MustGetAppendOffset()
 

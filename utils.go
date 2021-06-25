@@ -25,6 +25,7 @@ type Storage struct {
 
 	typ.UnimplementedStorager
 	typ.UnimplementedAppender
+	typ.UnimplementedDirer
 }
 
 // String implements Storager.String
@@ -177,3 +178,12 @@ func (s *Storage) formatFileObject(v *files.FileMetadata) (o *typ.Object) {
 
 	return o
 }
+
+const (
+	// WriteSizeMaximum is the maximum size for write operation, 150MB.
+	// ref: https://www.dropbox.com/developers/documentation/http/documentation#files-upload
+	writeSizeMaximum = 150 * 1024 * 1024
+	// AppendTotalSizeMaximum is the max append total size in append operation, 350GB.
+	// ref: https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-append
+	appendTotalSizeMaximum = 350 * 1024 * 1024 * 1024
+)
