@@ -6,51 +6,18 @@ import (
 	"io"
 
 	"github.com/beyondstorage/go-storage/v4/pkg/credential"
-	"github.com/beyondstorage/go-storage/v4/pkg/endpoint"
 	"github.com/beyondstorage/go-storage/v4/pkg/httpclient"
 	"github.com/beyondstorage/go-storage/v4/services"
 	. "github.com/beyondstorage/go-storage/v4/types"
 )
 
 var _ credential.Provider
-var _ endpoint.Value
 var _ Storager
 var _ services.ServiceError
 var _ httpclient.Options
 
 // Type is the type for dropbox
 const Type = "dropbox"
-
-// ObjectMetadata stores service metadata for object.
-//
-// Deprecated: Use ObjectSystemMetadata instead.
-type ObjectMetadata struct {
-	// UploadSessionID a unique identifier for the upload session, refer to https://www.dropbox.com/developers/documentation/http/documentation#files-upload_session-start
-	UploadSessionID string
-}
-
-// GetObjectMetadata will get ObjectMetadata from Object.
-//
-// - This function should not be called by service implementer.
-// - The returning ObjectMetadata is read only and should not be modified.
-//
-// Deprecated: Use GetObjectSystemMetadata instead.
-func GetObjectMetadata(o *Object) ObjectMetadata {
-	om, ok := o.GetServiceMetadata()
-	if ok {
-		return om.(ObjectMetadata)
-	}
-	return ObjectMetadata{}
-}
-
-// setObjectMetadata will set ObjectMetadata into Object.
-//
-// - This function should only be called once, please make sure all data has been written before set.
-//
-// Deprecated: Use setObjectSystemMetadata instead.
-func setObjectMetadata(o *Object, om ObjectMetadata) {
-	o.SetServiceMetadata(om)
-}
 
 // ObjectSystemMetadata stores system metadata for object.
 type ObjectSystemMetadata struct {
@@ -148,36 +115,6 @@ var (
 )
 
 type StorageFeatures struct {
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationAll bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationCommitAppend bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationCreate bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationCreateAppend bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationCreateDir bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationDelete bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationList bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationMetadata bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationRead bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationStat bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationWrite bool
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	LooseOperationWriteAppend bool
-
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	VirtualOperationAll bool
-
-	// Deprecated: This field has been deprecated by GSP-109, planned be removed in v4.3.0.
-	VirtualPairAll bool
 }
 
 // pairStorageNew is the parsed struct
@@ -654,6 +591,12 @@ func (s *Storage) Create(path string, pairs ...Pair) (o *Object) {
 
 // CreateAppend will create an append object.
 //
+// ## Behavior
+//
+// - CreateAppend SHOULD create an appendable object with position 0 and size 0.
+// - CreateAppend SHOULD NOT return an error as the object exist.
+//   - Service SHOULD check and delete the object if exists.
+//
 // This function will create a context by default.
 func (s *Storage) CreateAppend(path string, pairs ...Pair) (o *Object, err error) {
 	ctx := context.Background()
@@ -661,6 +604,12 @@ func (s *Storage) CreateAppend(path string, pairs ...Pair) (o *Object, err error
 }
 
 // CreateAppendWithContext will create an append object.
+//
+// ## Behavior
+//
+// - CreateAppend SHOULD create an appendable object with position 0 and size 0.
+// - CreateAppend SHOULD NOT return an error as the object exist.
+//   - Service SHOULD check and delete the object if exists.
 func (s *Storage) CreateAppendWithContext(ctx context.Context, path string, pairs ...Pair) (o *Object, err error) {
 	defer func() {
 		err = s.formatError("create_append", err, path)
@@ -749,6 +698,12 @@ func (s *Storage) DeleteWithContext(ctx context.Context, path string, pairs ...P
 
 // List will return list a specific path.
 //
+// ## Behavior
+//
+// - Service SHOULD support default `ListMode`.
+// - Service SHOULD implement `ListModeDir` without the check for `VirtualDir`.
+// - Service DON'T NEED to `Stat` while in `List`.
+//
 // This function will create a context by default.
 func (s *Storage) List(path string, pairs ...Pair) (oi *ObjectIterator, err error) {
 	ctx := context.Background()
@@ -756,6 +711,12 @@ func (s *Storage) List(path string, pairs ...Pair) (oi *ObjectIterator, err erro
 }
 
 // ListWithContext will return list a specific path.
+//
+// ## Behavior
+//
+// - Service SHOULD support default `ListMode`.
+// - Service SHOULD implement `ListModeDir` without the check for `VirtualDir`.
+// - Service DON'T NEED to `Stat` while in `List`.
 func (s *Storage) ListWithContext(ctx context.Context, path string, pairs ...Pair) (oi *ObjectIterator, err error) {
 	defer func() {
 		err = s.formatError("list", err, path)
@@ -849,6 +810,13 @@ func (s *Storage) StatWithContext(ctx context.Context, path string, pairs ...Pai
 
 // Write will write data into a file.
 //
+// ## Behavior
+//
+// - Write SHOULD NOT return an error as the object exist.
+//   - Service that has native support for `overwrite` doesn't NEED to check the object exists or not.
+//   - Service that doesn't have native support for `overwrite` SHOULD check and delete the object if exists.
+// - A successful write operation SHOULD be complete, which means the object's content and metadata should be the same as specified in write request.
+//
 // This function will create a context by default.
 func (s *Storage) Write(path string, r io.Reader, size int64, pairs ...Pair) (n int64, err error) {
 	ctx := context.Background()
@@ -856,6 +824,13 @@ func (s *Storage) Write(path string, r io.Reader, size int64, pairs ...Pair) (n 
 }
 
 // WriteWithContext will write data into a file.
+//
+// ## Behavior
+//
+// - Write SHOULD NOT return an error as the object exist.
+//   - Service that has native support for `overwrite` doesn't NEED to check the object exists or not.
+//   - Service that doesn't have native support for `overwrite` SHOULD check and delete the object if exists.
+// - A successful write operation SHOULD be complete, which means the object's content and metadata should be the same as specified in write request.
 func (s *Storage) WriteWithContext(ctx context.Context, path string, r io.Reader, size int64, pairs ...Pair) (n int64, err error) {
 	defer func() {
 		err = s.formatError("write", err, path)
