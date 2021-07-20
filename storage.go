@@ -29,7 +29,7 @@ func (s *Storage) commitAppend(ctx context.Context, o *Object, opt pairStorageCo
 		Path: rp,
 		Mode: &files.WriteMode{
 			Tagged: dropbox.Tagged{
-				Tag: files.WriteModeAdd,
+				Tag: files.WriteModeOverwrite,
 			},
 		},
 	}
@@ -273,7 +273,7 @@ func (s *Storage) write(ctx context.Context, path string, r io.Reader, size int6
 		Path: rp,
 		Mode: &files.WriteMode{
 			Tagged: dropbox.Tagged{
-				Tag: files.WriteModeAdd,
+				Tag: files.WriteModeOverwrite,
 			},
 		},
 	}
