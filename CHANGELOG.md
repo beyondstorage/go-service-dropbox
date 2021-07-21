@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.2.0] - 2021-07-21
+
+### Added
+
+- ci: Add gofmt action (#26)
+- ci: Add dependabot auto build support (#29)
+- ci: Add diff check action (#30)
+
+### Changed
+
+- storage: Implement GSP-134 Write Behavior Consistency (#34)
+
+### Fixed
+
+- ci: Fix auto-build not work correctly
+
+### Upgraded
+
+- build(deps): Bump github.com/dropbox/dropbox-sdk-go-unofficial/v6 from 6.0.1 to 6.0.2 (#24)
+
 ## [v2.1.0] - 2021-06-29
 
 ### Added
@@ -41,5 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement dropbox services.
 
+[v2.2.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v1.0.0...v2.0.0
