@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v2.3.0] - 2021-09-13
+
+### Changed
+
+- ci: Enable auto merge for dependabot
+- ci: Bump Xuanwo/fetch-metadata
+- docs: Update README (#42)
+- ci: Cleanup Service Integration Tests (#43)
+
+### Fixed
+
+- fix: Regenerate code
+
 ## [v2.2.0] - 2021-07-21
 
 ### Added
@@ -61,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Implement dropbox services.
 
+[v2.3.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v2.2.0...v2.3.0
 [v2.2.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v2.0.0...v2.1.0
 [v2.0.0]: https://github.com/beyondstorage/go-service-dropbox/compare/v1.0.0...v2.0.0
