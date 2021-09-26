@@ -113,7 +113,7 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		o = s.newObject(true)
 		o.Mode = ModeDir
 		o.ID = res.Metadata.Id
-		o.Path = res.Metadata.Name
+		o.Path = path
 	} else {
 		// `res` is nil when the given path is an existing folder.
 		o = s.newObject(false)
@@ -194,9 +194,9 @@ func (s *Storage) nextObjectPage(ctx context.Context, page *ObjectPage) error {
 		var o *Object
 		switch meta := v.(type) {
 		case *files.FolderMetadata:
-			o = s.formatFolderObject(meta)
+			o = s.formatFolderObject(input.path, meta)
 		case *files.FileMetadata:
-			o = s.formatFileObject(meta)
+			o = s.formatFileObject(input.path, meta)
 		}
 
 		page.Data = append(page.Data, o)
@@ -247,9 +247,9 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 
 	switch meta := output.(type) {
 	case *files.FolderMetadata:
-		o = s.formatFolderObject(meta)
+		o = s.formatFolderObject(path, meta)
 	case *files.FileMetadata:
-		o = s.formatFileObject(meta)
+		o = s.formatFileObject(path, meta)
 	}
 
 	return o, nil

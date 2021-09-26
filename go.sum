@@ -39,11 +39,11 @@ github.com/Xuanwo/go-bufferpool v0.2.0 h1:DXzqJD9lJufXbT/03GrcEvYOs4gXYUj9/g5yi6
 github.com/Xuanwo/go-bufferpool v0.2.0/go.mod h1:Mle++9GGouhOwGj52i9PJLNAPmW2nb8PWBP7JJzNCzk=
 github.com/Xuanwo/templateutils v0.1.0 h1:WpkWOqQtIQ2vAIpJLa727DdN8WtxhUkkbDGa6UhntJY=
 github.com/Xuanwo/templateutils v0.1.0/go.mod h1:OdE0DJ+CJxDBq6psX5DPV+gOZi8bhuHuVUpPCG++Wb8=
-github.com/beyondstorage/go-integration-test/v4 v4.5.1-0.20210924090921-226fca41b673 h1:y/+DOqQZQNb+6ic2IqHSfY2EQYcgDnjwtoKV6pB9tA4=
-github.com/beyondstorage/go-integration-test/v4 v4.5.1-0.20210924090921-226fca41b673/go.mod h1:o0pHhyaRR/OO6QxnRqWW3aFjTycBZjoKSdHKN/JZRjo=
+github.com/beyondstorage/go-integration-test/v4 v4.5.1-0.20210926085840-99ad753c21cb h1:qM23EswgY+5cUEEkA7SLqHOmlQbZ+zr+ycnZnsOx+O4=
+github.com/beyondstorage/go-integration-test/v4 v4.5.1-0.20210926085840-99ad753c21cb/go.mod h1:o0pHhyaRR/OO6QxnRqWW3aFjTycBZjoKSdHKN/JZRjo=
 github.com/beyondstorage/go-storage/v4 v4.7.0/go.mod h1:mc9VzBImjXDg1/1sLfta2MJH79elfM6m47ZZvZ+q/Uw=
-github.com/beyondstorage/go-storage/v4 v4.7.1-0.20210924093829-a0f27b214bcc h1:2Ajx0qw2S99T/6GkQfv3h4oSMc9Dc1ajp4QnEBrp3NQ=
-github.com/beyondstorage/go-storage/v4 v4.7.1-0.20210924093829-a0f27b214bcc/go.mod h1:zknx9z1WOSs0ow8eg8iuTgvMCqNnNJWxB2S9cAvhitM=
+github.com/beyondstorage/go-storage/v4 v4.7.1-0.20210926084413-cb0e6d082dc8 h1:gLmc1Gs4/pnNLanrsjFKJbABB/fa6EUgBJll/jn9WoY=
+github.com/beyondstorage/go-storage/v4 v4.7.1-0.20210926084413-cb0e6d082dc8/go.mod h1:zknx9z1WOSs0ow8eg8iuTgvMCqNnNJWxB2S9cAvhitM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
