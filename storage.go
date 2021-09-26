@@ -194,9 +194,9 @@ func (s *Storage) nextObjectPage(ctx context.Context, page *ObjectPage) error {
 		var o *Object
 		switch meta := v.(type) {
 		case *files.FolderMetadata:
-			o = s.formatFolderObject(input.path, meta)
+			o = s.formatFolderObject(meta.Name, meta)
 		case *files.FileMetadata:
-			o = s.formatFileObject(input.path, meta)
+			o = s.formatFileObject(meta.Name, meta)
 		}
 
 		page.Data = append(page.Data, o)
