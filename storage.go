@@ -217,13 +217,18 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 		Path: rp,
 	}
 
+	input.ExtraHeaders = make(map[string]string)
+	if opt.HasOffset && !opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=%d-", opt.Offset)
+	} else if !opt.HasOffset && opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=0-%d", opt.Size-1)
+	} else if opt.HasOffset && opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=%d-%d", opt.Offset, opt.Offset+opt.Size-1)
+	}
+
 	_, rc, err := s.client.Download(input)
 	if err != nil {
 		return 0, err
-	}
-
-	if opt.HasSize {
-		rc = iowrap.LimitReadCloser(rc, opt.Size)
 	}
 
 	if opt.HasIoCallback {
