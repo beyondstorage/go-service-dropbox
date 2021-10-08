@@ -113,7 +113,7 @@ func (s *Storage) createDir(ctx context.Context, path string, opt pairStorageCre
 		o = s.newObject(true)
 		o.Mode = ModeDir
 		o.ID = res.Metadata.Id
-		o.Path = res.Metadata.Name
+		o.Path = path
 	} else {
 		// `res` is nil when the given path is an existing folder.
 		o = s.newObject(false)
@@ -194,9 +194,9 @@ func (s *Storage) nextObjectPage(ctx context.Context, page *ObjectPage) error {
 		var o *Object
 		switch meta := v.(type) {
 		case *files.FolderMetadata:
-			o = s.formatFolderObject(meta)
+			o = s.formatFolderObject(meta.Name, meta)
 		case *files.FileMetadata:
-			o = s.formatFileObject(meta)
+			o = s.formatFileObject(meta.Name, meta)
 		}
 
 		page.Data = append(page.Data, o)
@@ -217,13 +217,18 @@ func (s *Storage) read(ctx context.Context, path string, w io.Writer, opt pairSt
 		Path: rp,
 	}
 
+	input.ExtraHeaders = make(map[string]string)
+	if opt.HasOffset && !opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=%d-", opt.Offset)
+	} else if !opt.HasOffset && opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=0-%d", opt.Size-1)
+	} else if opt.HasOffset && opt.HasSize {
+		input.ExtraHeaders["Range"] = fmt.Sprintf("bytes=%d-%d", opt.Offset, opt.Offset+opt.Size-1)
+	}
+
 	_, rc, err := s.client.Download(input)
 	if err != nil {
 		return 0, err
-	}
-
-	if opt.HasSize {
-		rc = iowrap.LimitReadCloser(rc, opt.Size)
 	}
 
 	if opt.HasIoCallback {
@@ -247,9 +252,9 @@ func (s *Storage) stat(ctx context.Context, path string, opt pairStorageStat) (o
 
 	switch meta := output.(type) {
 	case *files.FolderMetadata:
-		o = s.formatFolderObject(meta)
+		o = s.formatFolderObject(path, meta)
 	case *files.FileMetadata:
-		o = s.formatFileObject(meta)
+		o = s.formatFileObject(path, meta)
 	}
 
 	return o, nil
