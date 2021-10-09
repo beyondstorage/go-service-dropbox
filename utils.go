@@ -157,19 +157,19 @@ func (s *Storage) newObject(done bool) *typ.Object {
 	return typ.NewObject(s, done)
 }
 
-func (s *Storage) formatFolderObject(v *files.FolderMetadata) (o *typ.Object) {
+func (s *Storage) formatFolderObject(path string, v *files.FolderMetadata) (o *typ.Object) {
 	o = s.newObject(true)
 	o.ID = v.Id
-	o.Path = v.Name
+	o.Path = path
 	o.Mode |= typ.ModeDir
 
 	return o
 }
 
-func (s *Storage) formatFileObject(v *files.FileMetadata) (o *typ.Object) {
+func (s *Storage) formatFileObject(path string, v *files.FileMetadata) (o *typ.Object) {
 	o = s.newObject(true)
 	o.ID = v.Id
-	o.Path = v.Name
+	o.Path = path
 	o.Mode |= typ.ModeRead
 
 	o.SetContentLength(int64(v.Size))
